@@ -1,16 +1,6 @@
 <?php
-// === PHP: Handle Save Request ===
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     header('Content-Type: application/json');
-
-    $subject = trim($_POST['subject'] ?? '');
-    $room    = trim($_POST['room'] ?? '');
-    $data    = json_decode($_POST['data'] ?? '[]', true);
-
-    if (empty($subject) || empty($room) || !is_array($data) || empty($data)) {
-        echo json_encode(['success' => false, 'error' => 'Invalid input']);
-        exit;
-    }
 
     $host = 'sql.freedb.tech';
     $port = 3306;
@@ -22,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $user, $pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // Table uses roll_no (instead of enrollment_no)
+        // Ensure table exists
         $pdo->exec("CREATE TABLE IF NOT EXISTS faculty_validation (
             id INT AUTO_INCREMENT PRIMARY KEY,
             subject_code VARCHAR(20) NOT NULL,
@@ -33,20 +23,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             INDEX idx_subject_room (subject_code, room_no)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
-        $stmt = $pdo->prepare("INSERT INTO faculty_validation (subject_code, room_no, roll_no, digit) VALUES (?, ?, ?, ?)");
-        $inserted = 0;
-        foreach ($data as $row) {
-            $stmt->execute([$subject, $room, $row['roll_no'], $row['digit']]);
-            $inserted++;
+        $action = $_POST['action'];
+
+        if ($action === 'save') {
+            $subject = trim($_POST['subject'] ?? '');
+            $room = trim($_POST['room'] ?? '');
+            $data = json_decode($_POST['data'] ?? '[]', true);
+
+            if (empty($subject) || empty($room) || !is_array($data) || empty($data)) {
+                echo json_encode(['success' => false, 'error' => 'Invalid input']);
+                exit;
+            }
+
+            $stmt = $pdo->prepare("INSERT INTO faculty_validation (subject_code, room_no, roll_no, digit) VALUES (?, ?, ?, ?)");
+            foreach ($data as $row) {
+                $stmt->execute([$subject, $room, $row['roll_no'], $row['digit']]);
+            }
+
+            echo json_encode(['success' => true]);
         }
 
-        echo json_encode(['success' => true, 'inserted' => $inserted]);
+        elseif ($action === 'delete') {
+            $subject = trim($_POST['subject'] ?? '');
+            $room = trim($_POST['room'] ?? '');
+            $roll = intval($_POST['roll'] ?? -1);
+            $digit = intval($_POST['digit'] ?? -1);
+
+            if (empty($subject) || empty($room) || $roll < 0 || $digit < 0) {
+                echo json_encode(['success' => false, 'error' => 'Invalid delete input']);
+                exit;
+            }
+
+            $stmt = $pdo->prepare("DELETE FROM faculty_validation 
+                                   WHERE subject_code = ? AND room_no = ? AND roll_no = ? AND digit = ? 
+                                   ORDER BY id DESC LIMIT 1");
+            $stmt->execute([$subject, $room, $roll, $digit]);
+
+            echo json_encode(['success' => true]);
+        }
+
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
     exit;
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -138,78 +160,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
   </div>
 
   <script>
-    let roll = 1;
-    const total = 12;               // Change to 10 for testing
-    let subjectCode = "", roomNo = "", rollData = [];
+  let roll = 1;
+  const total = 12;
+  let subjectCode = "", roomNo = "";
 
-    function showStatus(msg, isError = false) {
-      const el = document.getElementById("status");
-      el.innerText = msg;
-      el.className = isError ? "error" : "success";
-      el.classList.remove("hidden");
-      setTimeout(() => el.classList.add("hidden"), 5000);
+  function showStatus(msg, isError = false) {
+    const el = document.getElementById("status");
+    el.innerText = msg;
+    el.className = isError ? "error" : "success";
+    el.classList.remove("hidden");
+    setTimeout(() => el.classList.add("hidden"), 3000);
+  }
+
+  function startRolling() {
+    subjectCode = document.getElementById("subjectCode").value.trim().toUpperCase();
+    roomNo      = document.getElementById("roomNo").value.trim();
+    if (!subjectCode || !roomNo) return alert("Both fields required!");
+
+    document.getElementById("inputModal").classList.add("hidden");
+    document.getElementById("subjectLine").innerText = "SUBJECT CODE : " + subjectCode;
+    document.getElementById("roomLine").innerText    = "ROOM NO. : " + roomNo;
+    document.getElementById("infoBox").classList.remove("hidden");
+    document.getElementById("rollContainer").classList.remove("hidden");
+
+    roll = 1;
+    startRoll();
+  }
+
+  async function startRoll() {
+    if (roll > total) {
+      document.getElementById("title").innerText = "ALL DONE!";
+      document.getElementById("digit").innerText = "";
+      showStatus("All rolls completed!");
+      return;
     }
 
-    function startRolling() {
-      subjectCode = document.getElementById("subjectCode").value.trim().toUpperCase();
-      roomNo      = document.getElementById("roomNo").value.trim();
-      if (!subjectCode || !roomNo) return alert("Both fields required!");
+    const digit = Math.floor(Math.random() * 10);
+    document.getElementById("title").innerText = "ROLL : " + roll;
+    document.getElementById("digit").innerText = digit;
 
-      document.getElementById("inputModal").classList.add("hidden");
-      document.getElementById("subjectLine").innerText = "SUBJECT CODE : " + subjectCode;
-      document.getElementById("roomLine").innerText    = "ROOM NO. : " + roomNo;
-      document.getElementById("infoBox").classList.remove("hidden");
-      document.getElementById("rollContainer").classList.remove("hidden");
-
-      rollData = [];
-      startRoll();
-    }
-
-    function startRoll() {
-      if (roll > total) {
-        document.getElementById("title").innerText = "ALL DONE!";
-        document.getElementById("digit").innerText = "";
-        saveToDatabase();
-        return;
-      }
-      const digit = Math.floor(Math.random() * 10);
-      document.getElementById("title").innerText = "ROLL : " + roll;
-      document.getElementById("digit").innerText = digit;
-
-      // Store as roll_no (instead of enrollment_no)
-      rollData.push({ roll_no: roll, digit: digit });
-
-      roll++;
-      setTimeout(startRoll, 2000);
-    }
-
-    async function saveToDatabase() {
-      if (!rollData.length) return;
-
+    try {
+      // Insert record
       const formData = new FormData();
       formData.append('action', 'save');
       formData.append('subject', subjectCode);
       formData.append('room', roomNo);
-      formData.append('data', JSON.stringify(rollData));
+      formData.append('data', JSON.stringify([{ roll_no: roll, digit: digit }]));
 
-      try {
-        const response = await fetch('', {  // Same file
-          method: 'POST',
-          body: formData
-        });
-        const result = await response.json();
+      const res = await fetch('', { method: 'POST', body: formData });
+      const result = await res.json();
 
-        if (result.success) {
-          showStatus(`Saved ${result.inserted} records!`);
-          alert(`Success! ${result.inserted} rolls saved.`);
-        } else {
-          throw new Error(result.error);
-        }
-      } catch (err) {
-        showStatus("Save failed: " + err.message, true);
-        alert("Error: " + err.message);
+      if (result.success) {
+        showStatus(`Roll ${roll} saved`);
+        console.log(`Saved roll ${roll}`);
+
+        // Delete same record after 2 seconds
+        setTimeout(async () => {
+          try {
+            const delData = new FormData();
+            delData.append('action', 'delete');
+            delData.append('subject', subjectCode);
+            delData.append('room', roomNo);
+            delData.append('roll', roll);
+            delData.append('digit', digit);
+
+            const delRes = await fetch('', { method: 'POST', body: delData });
+            const delResult = await delRes.json();
+            if (delResult.success) {
+              console.log(`Deleted roll ${roll}`);
+            } else {
+              console.error(`Delete failed for roll ${roll}`);
+            }
+          } catch (err) {
+            console.error("Error deleting roll:", err);
+          }
+        }, 2000);
+      } else {
+        showStatus(`Error saving roll ${roll}`, true);
       }
+    } catch (err) {
+      console.error(err);
+      showStatus(`Failed: ${err.message}`, true);
     }
+
+    roll++;
+    setTimeout(startRoll, 2000);
+  }
   </script>
+
 </body>
 </html>
