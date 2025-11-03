@@ -1,18 +1,14 @@
 <?php
-// view_attendance.php - Shared page for viewing attendance (accessible to both student/faculty)
-// Database Configuration
-$host = 'sql.freedb.tech';
-$port = 3306;
-$dbname = 'freedb_PROJECT';
-$user = 'freedb_ADITYA';
-$pass = 'FDA74dD3aTMxk#*';
+// view_attendance.php - View Attendance Records
+require_once __DIR__ . '/.env.php';
 
-$pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $user, $pass);
+$pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 $results = [];
 $search_performed = false;
 $error = '';
+$pre_roll = (int)($_GET['roll'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $roll_no = (int)($_POST['roll_no'] ?? 0);
@@ -155,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST">
         <div class="form-group">
             <label>Roll Number (1-100)</label>
-            <input type="number" name="roll_no" min="1" max="100" placeholder="e.g., 45" required>
+            <input type="number" name="roll_no" min="1" max="100" placeholder="e.g., 45" value="<?= $pre_roll > 0 ? $pre_roll : '' ?>" required>
         </div>
         <div class="form-group">
             <label>Subject Code</label>
@@ -192,7 +188,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tbody>
                 </table>
             <?php else: ?>
-                <p class="no-results">No attendance records found for Roll <?= htmlspecialchars($roll_no) ?> in <?= htmlspecialchars($subject) ?>.</p>
+                <p class="no-results">No attendance records found for Roll <?= htmlspecialchars($_POST['roll_no'] ?? '') ?> in <?= htmlspecialchars($_POST['subject'] ?? '') ?>.</p>
             <?php endif; ?>
         </div>
     <?php endif; ?>
@@ -200,6 +196,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <a href="student.php" class="back-link">Back to Student Portal</a>
     <a href="faculty.php" class="back-link">Back to Faculty Portal</a>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('student_roll');
+    const rollInput = document.querySelector('input[name="roll_no"]');
+    if (saved && !rollInput.value) {
+        rollInput.value = saved;
+    }
+});
+</script>
 
 </body>
 </html>

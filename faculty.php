@@ -1,67 +1,57 @@
 <?php
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+// faculty.php - Faculty Roll Page
+require_once __DIR__ . '/.env.php';
+
+// === PHP: Handle Save Request (Per Roll Digit) ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_digit') {
     header('Content-Type: application/json');
 
-    $host = 'sql.freedb.tech';
-    $port = 3306;
-    $dbname = 'freedb_PROJECT';
-    $user = 'freedb_ADITYA';
-    $pass = 'FDA74dD3aTMxk#*';
+    $subject = strtoupper(trim($_POST['subject'] ?? ''));
+    $room = strtoupper(trim($_POST['room'] ?? ''));
+    $roll_no = (int)($_POST['roll_no'] ?? 0);
+    $digit = (int)($_POST['digit'] ?? -1);
+
+    if (empty($subject) || empty($room) || $roll_no < 1 || $roll_no > 100 || $digit < 0 || $digit > 9) {
+        echo json_encode(['success' => false, 'error' => 'Invalid input']);
+        exit;
+    }
 
     try {
-        $pdo = new PDO("mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4", $user, $pass);
+        $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // Ensure table exists
-        $pdo->exec("CREATE TABLE IF NOT EXISTS faculty_validation (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+        // Create table if not exists
+        $pdo->exec("CREATE TABLE IF NOT EXISTS temp_attendance (
             subject_code VARCHAR(20) NOT NULL,
             room_no VARCHAR(20) NOT NULL,
             roll_no INT NOT NULL,
-            digit INT NOT NULL CHECK (digit >= 0 AND digit <= 9),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_subject_room (subject_code, room_no)
+            digit INT NOT NULL,
+            ts DATETIME NOT NULL,
+            PRIMARY KEY (subject_code, room_no, roll_no)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 
-        $action = $_POST['action'];
+        $now = date('Y-m-d H:i:s');
+        $stmt = $pdo->prepare("REPLACE INTO temp_attendance (subject_code, room_no, roll_no, digit, ts) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$subject, $room, $roll_no, $digit, $now]);
 
-        if ($action === 'save') {
-            $subject = trim($_POST['subject'] ?? '');
-            $room = trim($_POST['room'] ?? '');
-            $data = json_decode($_POST['data'] ?? '[]', true);
+        echo json_encode(['success' => true]);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
+}
 
-            if (empty($subject) || empty($room) || !is_array($data) || empty($data)) {
-                echo json_encode(['success' => false, 'error' => 'Invalid input']);
-                exit;
-            }
+// === PHP: Handle Roll Completion (Truncate temp_attendance) ===
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'roll_complete') {
+    header('Content-Type: application/json');
 
-            $stmt = $pdo->prepare("INSERT INTO faculty_validation (subject_code, room_no, roll_no, digit) VALUES (?, ?, ?, ?)");
-            foreach ($data as $row) {
-                $stmt->execute([$subject, $room, $row['roll_no'], $row['digit']]);
-            }
+    try {
+        $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-            echo json_encode(['success' => true]);
-        }
+        $pdo->exec("TRUNCATE TABLE temp_attendance");
 
-        elseif ($action === 'delete') {
-            $subject = trim($_POST['subject'] ?? '');
-            $room = trim($_POST['room'] ?? '');
-            $roll = intval($_POST['roll'] ?? -1);
-            $digit = intval($_POST['digit'] ?? -1);
-
-            if (empty($subject) || empty($room) || $roll < 0 || $digit < 0) {
-                echo json_encode(['success' => false, 'error' => 'Invalid delete input']);
-                exit;
-            }
-
-            $stmt = $pdo->prepare("DELETE FROM faculty_validation 
-                                   WHERE subject_code = ? AND room_no = ? AND roll_no = ? AND digit = ? 
-                                   ORDER BY id DESC LIMIT 1");
-            $stmt->execute([$subject, $room, $roll, $digit]);
-
-            echo json_encode(['success' => true]);
-        }
-
+        echo json_encode(['success' => true]);
     } catch (Exception $e) {
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
@@ -74,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>FACULTY ATTENDANCE PORTAL</title>
+  <title>Faculty Roll</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -159,94 +149,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <div class="circle" id="digit">–</div>
   </div>
 
+  <div style="text-align:center; margin-top:30px;">
+    <a href="view_attendance.php" style="color:#0ff; font-size:20px; text-decoration:none;">View Attendance Records</a>
+  </div>
+
   <script>
-  let roll = 1;
-  const total = 12;
-  let subjectCode = "", roomNo = "";
+    let roll = 1;
+    const total = 100;
+    let subjectCode = "", roomNo = "";
 
-  function showStatus(msg, isError = false) {
-    const el = document.getElementById("status");
-    el.innerText = msg;
-    el.className = isError ? "error" : "success";
-    el.classList.remove("hidden");
-    setTimeout(() => el.classList.add("hidden"), 3000);
-  }
-
-  function startRolling() {
-    subjectCode = document.getElementById("subjectCode").value.trim().toUpperCase();
-    roomNo      = document.getElementById("roomNo").value.trim();
-    if (!subjectCode || !roomNo) return alert("Both fields required!");
-
-    document.getElementById("inputModal").classList.add("hidden");
-    document.getElementById("subjectLine").innerText = "SUBJECT CODE : " + subjectCode;
-    document.getElementById("roomLine").innerText    = "ROOM NO. : " + roomNo;
-    document.getElementById("infoBox").classList.remove("hidden");
-    document.getElementById("rollContainer").classList.remove("hidden");
-
-    roll = 1;
-    startRoll();
-  }
-
-  async function startRoll() {
-    if (roll > total) {
-      document.getElementById("title").innerText = "ALL DONE!";
-      document.getElementById("digit").innerText = "";
-      showStatus("All rolls completed!");
-      return;
+    function showStatus(msg, isError = false) {
+      const el = document.getElementById("status");
+      el.innerText = msg;
+      el.className = isError ? "error" : "success";
+      el.classList.remove("hidden");
+      setTimeout(() => el.classList.add("hidden"), 5000);
     }
 
-    const digit = Math.floor(Math.random() * 10);
-    document.getElementById("title").innerText = "ROLL : " + roll;
-    document.getElementById("digit").innerText = digit;
+    function startRolling() {
+      subjectCode = document.getElementById("subjectCode").value.trim().toUpperCase();
+      roomNo = document.getElementById("roomNo").value.trim().toUpperCase();
+      if (!subjectCode || !roomNo) return alert("Both fields required!");
 
-    try {
-      // Insert record
+      document.getElementById("inputModal").classList.add("hidden");
+      document.getElementById("subjectLine").innerText = "SUBJECT CODE : " + subjectCode;
+      document.getElementById("roomLine").innerText = "ROOM NO. : " + roomNo;
+      document.getElementById("infoBox").classList.remove("hidden");
+      document.getElementById("rollContainer").classList.remove("hidden");
+
+      startRoll();
+    }
+
+    async function saveDigit(roll_no, digit) {
       const formData = new FormData();
-      formData.append('action', 'save');
+      formData.append('action', 'save_digit');
       formData.append('subject', subjectCode);
       formData.append('room', roomNo);
-      formData.append('data', JSON.stringify([{ roll_no: roll, digit: digit }]));
+      formData.append('roll_no', roll_no);
+      formData.append('digit', digit);
 
-      const res = await fetch('', { method: 'POST', body: formData });
-      const result = await res.json();
-
-      if (result.success) {
-        showStatus(`Roll ${roll} saved`);
-        console.log(`Saved roll ${roll}`);
-
-        // Delete same record after 2 seconds
-        setTimeout(async () => {
-          try {
-            const delData = new FormData();
-            delData.append('action', 'delete');
-            delData.append('subject', subjectCode);
-            delData.append('room', roomNo);
-            delData.append('roll', roll);
-            delData.append('digit', digit);
-
-            const delRes = await fetch('', { method: 'POST', body: delData });
-            const delResult = await delRes.json();
-            if (delResult.success) {
-              console.log(`Deleted roll ${roll}`);
-            } else {
-              console.error(`Delete failed for roll ${roll}`);
-            }
-          } catch (err) {
-            console.error("Error deleting roll:", err);
-          }
-        }, 2000);
-      } else {
-        showStatus(`Error saving roll ${roll}`, true);
+      try {
+        await fetch('', {
+          method: 'POST',
+          body: formData
+        });
+      } catch (err) {
+        // Silent
       }
-    } catch (err) {
-      console.error(err);
-      showStatus(`Failed: ${err.message}`, true);
     }
 
-    roll++;
-    setTimeout(startRoll, 2000);
-  }
-  </script>
+    async function completeRoll() {
+      const formData = new FormData();
+      formData.append('action', 'roll_complete');
 
+      try {
+        await fetch('', {
+          method: 'POST',
+          body: formData
+        });
+      } catch (err) {
+        // Silent
+      }
+    }
+
+    function startRoll() {
+      if (roll > total) {
+        document.getElementById("title").innerText = "ALL DONE!";
+        document.getElementById("digit").innerText = "";
+        showStatus("Roll complete. Attendance window closed.");
+        completeRoll(); // Truncate temp_attendance
+        return;
+      }
+      const digit = Math.floor(Math.random() * 10);
+      document.getElementById("title").innerText = "ROLL : " + roll;
+      document.getElementById("digit").innerText = digit;
+
+      saveDigit(roll, digit);
+
+      roll++;
+      setTimeout(startRoll, 2000);
+    }
+  </script>
 </body>
 </html>
