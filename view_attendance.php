@@ -1,5 +1,5 @@
 <?php
-// view_attendance.php - View Attendance Records (Production-Ready: Env Vars ONLY)
+// view_attendance.php - View Records (Env Vars ONLY)
 
 $db_host = getenv('DB_HOST') ?: die('DB_HOST missing');
 $db_port = (int)(getenv('DB_PORT') ?: 3306);
@@ -11,7 +11,6 @@ try {
     $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Create attendance table if not exists
     $pdo->exec("CREATE TABLE IF NOT EXISTS attendance (
         id INT AUTO_INCREMENT PRIMARY KEY,
         roll_no INT NOT NULL,
@@ -20,7 +19,7 @@ try {
         attendance_time TIME NOT NULL,
         ts DATETIME NOT NULL,
         UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 
 } catch (Exception $e) {
     die("Database connection failed: " . htmlspecialchars($e->getMessage()));
@@ -41,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $search_performed = true;
         try {
             $stmt = $pdo->prepare("
-                SELECT roll_no, subject_code, attendance_date, attendance_time 
+                SELECT id, roll_no, subject_code, attendance_date, attendance_time 
                 FROM attendance 
                 WHERE roll_no = ? AND subject_code = ? 
                 ORDER BY attendance_date DESC, attendance_time DESC
@@ -191,6 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <table>
                     <thead>
                         <tr>
+                            <th>ID</th>
                             <th>Roll No</th>
                             <th>Subject</th>
                             <th>Date</th>
@@ -200,6 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <tbody>
                         <?php foreach ($results as $row): ?>
                             <tr>
+                                <td><?= htmlspecialchars($row['id']) ?></td>
                                 <td><?= htmlspecialchars($row['roll_no']) ?></td>
                                 <td><?= htmlspecialchars($row['subject_code']) ?></td>
                                 <td><?= htmlspecialchars($row['attendance_date']) ?></td>

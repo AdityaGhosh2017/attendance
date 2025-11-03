@@ -1,18 +1,17 @@
 <?php
-// faculty.php - Faculty Roll Page (Production-Ready: Env Vars ONLY)
-// Set in Render.com dashboard: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS
+// faculty.php - Faculty Roll (Env Vars ONLY)
 
-$db_host = getenv('DB_HOST') ?: die('DB_HOST missing - Set in Render Environment Variables');
+$db_host = getenv('DB_HOST') ?: die('DB_HOST missing');
 $db_port = (int)(getenv('DB_PORT') ?: 3306);
 $db_name = getenv('DB_NAME') ?: die('DB_NAME missing');
 $db_user = getenv('DB_USER') ?: die('DB_USER missing');
 $db_pass = getenv('DB_PASS') ?: die('DB_PASS missing');
 
 if (empty($db_host) || empty($db_name) || empty($db_user) || empty($db_pass)) {
-    die('Database configuration missing. Set DB_HOST, DB_NAME, DB_USER, DB_PASS in server environment variables.');
+    die('Set DB_HOST, DB_NAME, DB_USER, DB_PASS in environment variables.');
 }
 
-// === PHP: Handle Save Request (Per Roll Digit) ===
+// Save digit per roll
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_digit') {
     header('Content-Type: application/json');
 
@@ -30,7 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // Create temp_attendance table
         $pdo->exec("CREATE TABLE IF NOT EXISTS temp_attendance (
             subject_code VARCHAR(20) NOT NULL,
             room_no VARCHAR(20) NOT NULL,
@@ -51,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// === PHP: Handle Roll Completion ===
+// Roll complete
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'roll_complete') {
     header('Content-Type: application/json');
 
@@ -165,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
   <script>
     let roll = 1;
-    const total = 100;
+    const total = 10;
     let subjectCode = "", roomNo = "";
 
     function showStatus(msg, isError = false) {
@@ -203,9 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
           method: 'POST',
           body: formData
         });
-      } catch (err) {
-        // Silent
-      }
+      } catch (err) {}
     }
 
     async function completeRoll() {
@@ -217,9 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
           method: 'POST',
           body: formData
         });
-      } catch (err) {
-        // Silent
-      }
+      } catch (err) {}
     }
 
     function startRoll() {

@@ -1,5 +1,5 @@
 <?php
-// student.php - Student Portal (Production-Ready: Env Vars ONLY)
+// student.php - Student Portal (Env Vars ONLY)
 
 $db_host = getenv('DB_HOST') ?: die('DB_HOST missing');
 $db_port = (int)(getenv('DB_PORT') ?: 3306);
@@ -11,7 +11,6 @@ try {
     $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    // Create tables if not exist
     $pdo->exec("CREATE TABLE IF NOT EXISTS temp_attendance (
         subject_code VARCHAR(20) NOT NULL,
         room_no VARCHAR(20) NOT NULL,
@@ -29,12 +28,12 @@ try {
         attendance_time TIME NOT NULL,
         ts DATETIME NOT NULL,
         UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 } catch (Exception $e) {
     die("Database setup error: " . htmlspecialchars($e->getMessage()));
 }
 
-// Handle mark attendance
+// Mark attendance
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'mark_attendance') {
     header('Content-Type: application/json');
     
@@ -67,13 +66,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             ");
             $insert->execute([$roll_no, $subject, $now, $now, $now]);
 
+            $last_id = $pdo->lastInsertId();
+
             $delete = $pdo->prepare("
                 DELETE FROM temp_attendance 
                 WHERE subject_code = ? AND room_no = ? AND roll_no = ?
             ");
             $delete->execute([$subject, $room, $roll_no]);
 
-            echo json_encode(['success' => true, 'message' => 'Attendance marked!']);
+            echo json_encode([
+                'success' => true,
+                'message' => "Attendance marked successfully! (ID: $last_id)"
+            ]);
         } else {
             echo json_encode(['success' => false, 'message' => 'No matching digit in 10-second window.']);
         }
