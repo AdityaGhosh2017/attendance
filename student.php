@@ -12,23 +12,26 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS temp_attendance (
-        subject_code VARCHAR(20) NOT NULL,
-        room_no VARCHAR(20) NOT NULL,
-        roll_no INT NOT NULL,
-        digit INT NOT NULL,
-        ts DATETIME NOT NULL,
-        PRIMARY KEY (subject_code, room_no, roll_no)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    id INT NOT NULL AUTO_INCREMENT,
+    subject_code VARCHAR(20) NOT NULL,
+    room_no VARCHAR(20) NOT NULL,
+    roll_no INT NOT NULL,
+    digit INT NOT NULL,
+    ts DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_session_roll (subject_code, room_no, roll_no)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS attendance (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        roll_no INT NOT NULL,
-        subject_code VARCHAR(20) NOT NULL,
-        attendance_date DATE NOT NULL,
-        attendance_time TIME NOT NULL,
-        ts DATETIME NOT NULL,
-        UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
-    ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
+    id INT NOT NULL AUTO_INCREMENT,
+    roll_no INT NOT NULL,
+    subject_code VARCHAR(20) NOT NULL,
+    attendance_date DATE NOT NULL,
+    attendance_time TIME NOT NULL,
+    ts DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 } catch (Exception $e) {
     die("Database setup error: " . htmlspecialchars($e->getMessage()));
 }
@@ -303,7 +306,7 @@ document.getElementById('saveRollBtn').onclick = () => {
 
     if (!roll || roll < 1 || roll > 100) {
         msg.style.color = '#f87171';
-        msg.textContent = 'Enter valid roll (1-100)';
+        msg.textContent = 'Enter valid roll (1-10)';
         msg.style.display = 'block';
         return;
     }

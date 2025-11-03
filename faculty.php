@@ -29,14 +29,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $pdo->exec("CREATE TABLE IF NOT EXISTS temp_attendance (
-            subject_code VARCHAR(20) NOT NULL,
-            room_no VARCHAR(20) NOT NULL,
-            roll_no INT NOT NULL,
-            digit INT NOT NULL,
-            ts DATETIME NOT NULL,
-            PRIMARY KEY (subject_code, room_no, roll_no)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+        $pdo->exec("CREATE TABLE IF NOT EXISTS attendance (
+    id INT NOT NULL AUTO_INCREMENT,
+    roll_no INT NOT NULL,
+    subject_code VARCHAR(20) NOT NULL,
+    attendance_date DATE NOT NULL,
+    attendance_time TIME NOT NULL,
+    ts DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 
         $now = date('Y-m-d H:i:s');
         $stmt = $pdo->prepare("REPLACE INTO temp_attendance (subject_code, room_no, roll_no, digit, ts) VALUES (?, ?, ?, ?, ?)");
@@ -49,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// Roll complete
+// Roll complete - TRUNCATE after delay
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'roll_complete') {
     header('Content-Type: application/json');
 
@@ -163,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
   <script>
     let roll = 1;
-    const total = 10;
+    const total = 100;
     let subjectCode = "", roomNo = "";
 
     function showStatus(msg, isError = false) {
@@ -171,7 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       el.innerText = msg;
       el.className = isError ? "error" : "success";
       el.classList.remove("hidden");
-      setTimeout(() => el.classList.add("hidden"), 5000);
+      setTimeout(() => el.classList.add("hidden"), 10000);  // Show longer
     }
 
     function startRolling() {
@@ -213,6 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
           method: 'POST',
           body: formData
         });
+        showStatus("Temp data cleared! Attendance window closed.", false);
       } catch (err) {}
     }
 
@@ -220,8 +223,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       if (roll > total) {
         document.getElementById("title").innerText = "ALL DONE!";
         document.getElementById("digit").innerText = "";
-        showStatus("Roll complete. Attendance window closed.");
-        completeRoll();
+        showStatus("Roll complete! Temp data will clear in 30 seconds.");
+        setTimeout(completeRoll, 30000);  // TRUNCATE after 30s
         return;
       }
       const digit = Math.floor(Math.random() * 10);
@@ -231,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       saveDigit(roll, digit);
 
       roll++;
-      setTimeout(startRoll, 2000);
+      setTimeout(startRoll, 500);
     }
   </script>
 </body>

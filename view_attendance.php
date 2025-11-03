@@ -12,14 +12,15 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS attendance (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        roll_no INT NOT NULL,
-        subject_code VARCHAR(20) NOT NULL,
-        attendance_date DATE NOT NULL,
-        attendance_time TIME NOT NULL,
-        ts DATETIME NOT NULL,
-        UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
-    ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
+    id INT NOT NULL AUTO_INCREMENT,
+    roll_no INT NOT NULL,
+    subject_code VARCHAR(20) NOT NULL,
+    attendance_date DATE NOT NULL,
+    attendance_time TIME NOT NULL,
+    ts DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 
 } catch (Exception $e) {
     die("Database connection failed: " . htmlspecialchars($e->getMessage()));
