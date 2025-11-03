@@ -1,8 +1,11 @@
-# Use official PHP image with Apache
-FROM php:8.2-apache
+FROM php:8.2-cli
 
-# Copy all project files into the web root
-COPY . /var/www/html/
+# Copy code
+COPY . /app
+WORKDIR /app
 
-# Expose port 80
-EXPOSE 80
+# Expose port (Render uses $PORT)
+EXPOSE $PORT
+
+# Start PHP server
+CMD php -S 0.0.0.0:$PORT
