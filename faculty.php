@@ -165,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
   <script>
     let roll = 1;
-    const total = 100;
+    const total = 10;
     let subjectCode = "", roomNo = "";
 
     function showStatus(msg, isError = false) {
@@ -234,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       saveDigit(roll, digit);
 
       roll++;
-      setTimeout(startRoll, 500);
+      setTimeout(startRoll, 2000);
     }
   </script>
 </body>
