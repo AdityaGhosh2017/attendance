@@ -36,8 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     attendance_date DATE NOT NULL,
     attendance_time TIME NOT NULL,
     ts DATETIME NOT NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 
         $now = date('Y-m-d H:i:s');

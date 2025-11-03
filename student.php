@@ -18,8 +18,7 @@ try {
     roll_no INT NOT NULL,
     digit INT NOT NULL,
     ts DATETIME NOT NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY uniq_session_roll (subject_code, room_no, roll_no)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS attendance (
@@ -29,8 +28,7 @@ try {
     attendance_date DATE NOT NULL,
     attendance_time TIME NOT NULL,
     ts DATETIME NOT NULL,
-    PRIMARY KEY (id),
-    UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
+    PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 } catch (Exception $e) {
     die("Database setup error: " . htmlspecialchars($e->getMessage()));
