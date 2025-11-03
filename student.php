@@ -1,6 +1,11 @@
 <?php
-// student.php - Student Portal
-require_once __DIR__ . '/.env.php';
+// student.php - Render.com Deployment (Env Vars ONLY - No .env.php)
+// Deploy on Render: Set DB_* vars in dashboard
+$db_host = $_SERVER['DB_HOST'] ?? die('DB_HOST missing - Set in Render Environment Variables');
+$db_port = (int)($_SERVER['DB_PORT'] ?? 3306);
+$db_name = $_SERVER['DB_NAME'] ?? die('DB_NAME missing');
+$db_user = $_SERVER['DB_USER'] ?? die('DB_USER missing');
+$db_pass = $_SERVER['DB_PASS'] ?? die('DB_PASS missing');
 
 $message = '';
 
@@ -228,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <?php endfor; ?>
     </div>
     <div class="hint">Submit within 10 seconds of tapping the digit</div>
-    <a href="view_attendance.php" class="back-link" style="display:block; text-align:center; margin-top:20px; color:#60a5fa;">View My Attendance</a>
+    <a href="view_attendance.php" id="viewLink" style="display:block; text-align:center; margin-top:20px; color:#60a5fa;">View My Attendance</a>
 </div>
 
 <!-- Registration Modal -->
@@ -356,8 +361,8 @@ form.onsubmit = async (e) => {
     }
 };
 
-// Auto-pass roll to view_attendance
-document.querySelector('a[href="view_attendance.php"]').addEventListener('click', (e) => {
+// Auto-pass saved roll to view_attendance.php
+document.getElementById('viewLink').addEventListener('click', (e) => {
     if (savedRoll) {
         e.preventDefault();
         window.location.href = 'view_attendance.php?roll=' + savedRoll;

@@ -1,6 +1,17 @@
 <?php
-// faculty.php - Faculty Roll Page
-require_once __DIR__ . '/.env.php';
+// faculty.php - Faculty Roll Page (Production-Ready: Credentials via Env Vars ONLY)
+// NO .env.php fallback - Forces server environment variables
+// Set these in hosting panel (cPanel > PHP Variables, .htaccess, or Apache config)
+
+$db_host = $_SERVER['DB_HOST'] ?? die('DB_HOST missing - Set in Render Environment Variables');
+$db_port = (int)($_SERVER['DB_PORT'] ?? 3306);
+$db_name = $_SERVER['DB_NAME'] ?? die('DB_NAME missing');
+$db_user = $_SERVER['DB_USER'] ?? die('DB_USER missing');
+$db_pass = $_SERVER['DB_PASS'] ?? die('DB_PASS missing');
+
+if (empty($db_host) || empty($db_name) || empty($db_user) || empty($db_pass)) {
+    die('Database configuration missing. Set DB_HOST, DB_NAME, DB_USER, DB_PASS in server environment variables.');
+}
 
 // === PHP: Handle Save Request (Per Roll Digit) ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_digit') {

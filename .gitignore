@@ -1,26 +1,8 @@
-# .gitignore - Add this file to your project root
-# Secrets & Environment
+# .gitignore
 .env.php
 .env
-config.php
-
-# Logs and Temp
 *.log
 /temp/
 /tmp/
-
-# XAMPP / Local Dev
-/xampp/
-/htdocs/
-/apache/
-/mysql/
-
-# IDE / Editor
 .idea/
 .vscode/
-*.swp
-*.swo
-
-# Git
-.git/
-.gitignore

@@ -1,6 +1,14 @@
 <?php
-// view_attendance.php - View Attendance Records
-require_once __DIR__ . '/.env.php';
+// view_attendance.php - View Attendance Records (Production-Ready: Env Vars ONLY)
+$db_host = $_SERVER['DB_HOST'] ?? die('DB_HOST missing - Set in Render Environment Variables');
+$db_port = (int)($_SERVER['DB_PORT'] ?? 3306);
+$db_name = $_SERVER['DB_NAME'] ?? die('DB_NAME missing');
+$db_user = $_SERVER['DB_USER'] ?? die('DB_USER missing');
+$db_pass = $_SERVER['DB_PASS'] ?? die('DB_PASS missing');
+
+if (empty($db_host) || empty($db_name) || empty($db_user) || empty($db_pass)) {
+    die('Database configuration missing. Set DB_HOST, DB_NAME, DB_USER, DB_PASS in server environment variables.');
+}
 
 $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -151,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST">
         <div class="form-group">
             <label>Roll Number (1-100)</label>
-            <input type="number" name="roll_no" min="1" max="100" placeholder="e.g., 45" value="<?= $pre_roll > 0 ? $pre_roll : '' ?>" required>
+            <input type="number" name="roll_no" id="rollInput" min="1" max="100" placeholder="e.g., 45" value="<?= $pre_roll > 0 ? $pre_roll : '' ?>" required>
         </div>
         <div class="form-group">
             <label>Subject Code</label>
@@ -188,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </tbody>
                 </table>
             <?php else: ?>
-                <p class="no-results">No attendance records found for Roll <?= htmlspecialchars($_POST['roll_no'] ?? '') ?> in <?= htmlspecialchars($_POST['subject'] ?? '') ?>.</p>
+                <p class="no-results">No attendance records found.</p>
             <?php endif; ?>
         </div>
     <?php endif; ?>
@@ -200,8 +208,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('student_roll');
-    const rollInput = document.querySelector('input[name="roll_no"]');
-    if (saved && !rollInput.value) {
+    const rollInput = document.getElementById('rollInput');
+    if (saved && rollInput && !rollInput.value) {
         rollInput.value = saved;
     }
 });
