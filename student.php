@@ -1,11 +1,11 @@
 <?php
 // student.php - Render.com Deployment (Env Vars ONLY - No .env.php)
 // Deploy on Render: Set DB_* vars in dashboard
-$db_host = $_SERVER['DB_HOST'] ?? die('DB_HOST missing - Set in Render Environment Variables');
-$db_port = (int)($_SERVER['DB_PORT'] ?? 3306);
-$db_name = $_SERVER['DB_NAME'] ?? die('DB_NAME missing');
-$db_user = $_SERVER['DB_USER'] ?? die('DB_USER missing');
-$db_pass = $_SERVER['DB_PASS'] ?? die('DB_PASS missing');
+$db_host = getenv('DB_HOST') ?: die('DB_HOST missing - Set in Render Environment Variables');
+$db_port = (int)(getenv('DB_PORT') ?: 3306);
+$db_name = getenv('DB_NAME') ?: die('DB_NAME missing');
+$db_user = getenv('DB_USER') ?: die('DB_USER missing');
+$db_pass = getenv('DB_PASS') ?: die('DB_PASS missing');
 
 $message = '';
 
