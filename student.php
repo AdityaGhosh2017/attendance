@@ -1,34 +1,40 @@
 <?php
-// student.php - Render.com Deployment (Env Vars ONLY - No .env.php)
-// Deploy on Render: Set DB_* vars in dashboard
-$db_host = getenv('DB_HOST') ?: die('DB_HOST missing - Set in Render Environment Variables');
+// student.php - Student Portal (Production-Ready: Env Vars ONLY)
+
+$db_host = getenv('DB_HOST') ?: die('DB_HOST missing');
 $db_port = (int)(getenv('DB_PORT') ?: 3306);
 $db_name = getenv('DB_NAME') ?: die('DB_NAME missing');
 $db_user = getenv('DB_USER') ?: die('DB_USER missing');
 $db_pass = getenv('DB_PASS') ?: die('DB_PASS missing');
 
-$message = '';
-
 try {
     $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS attendance (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            roll_no INT NOT NULL,
-            subject_code VARCHAR(20) NOT NULL,
-            attendance_date DATE NOT NULL,
-            attendance_time TIME NOT NULL,
-            ts DATETIME NOT NULL,
-            UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
-        )
-    ");
+    // Create tables if not exist
+    $pdo->exec("CREATE TABLE IF NOT EXISTS temp_attendance (
+        subject_code VARCHAR(20) NOT NULL,
+        room_no VARCHAR(20) NOT NULL,
+        roll_no INT NOT NULL,
+        digit INT NOT NULL,
+        ts DATETIME NOT NULL,
+        PRIMARY KEY (subject_code, room_no, roll_no)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS attendance (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        roll_no INT NOT NULL,
+        subject_code VARCHAR(20) NOT NULL,
+        attendance_date DATE NOT NULL,
+        attendance_time TIME NOT NULL,
+        ts DATETIME NOT NULL,
+        UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
 } catch (Exception $e) {
     die("Database setup error: " . htmlspecialchars($e->getMessage()));
 }
 
-// Handle attendance submit
+// Handle mark attendance
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'mark_attendance') {
     header('Content-Type: application/json');
     
@@ -361,7 +367,6 @@ form.onsubmit = async (e) => {
     }
 };
 
-// Auto-pass saved roll to view_attendance.php
 document.getElementById('viewLink').addEventListener('click', (e) => {
     if (savedRoll) {
         e.preventDefault();

@@ -1,7 +1,6 @@
 <?php
-// faculty.php - Faculty Roll Page (Production-Ready: Credentials via Env Vars ONLY)
-// NO .env.php fallback - Forces server environment variables
-// Set these in hosting panel (cPanel > PHP Variables, .htaccess, or Apache config)
+// faculty.php - Faculty Roll Page (Production-Ready: Env Vars ONLY)
+// Set in Render.com dashboard: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASS
 
 $db_host = getenv('DB_HOST') ?: die('DB_HOST missing - Set in Render Environment Variables');
 $db_port = (int)(getenv('DB_PORT') ?: 3306);
@@ -31,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // Create table if not exists
+        // Create temp_attendance table
         $pdo->exec("CREATE TABLE IF NOT EXISTS temp_attendance (
             subject_code VARCHAR(20) NOT NULL,
             room_no VARCHAR(20) NOT NULL,
@@ -52,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
-// === PHP: Handle Roll Completion (Truncate temp_attendance) ===
+// === PHP: Handle Roll Completion ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'roll_complete') {
     header('Content-Type: application/json');
 
@@ -228,7 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         document.getElementById("title").innerText = "ALL DONE!";
         document.getElementById("digit").innerText = "";
         showStatus("Roll complete. Attendance window closed.");
-        completeRoll(); // Truncate temp_attendance
+        completeRoll();
         return;
       }
       const digit = Math.floor(Math.random() * 10);

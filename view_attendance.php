@@ -1,19 +1,30 @@
 <?php
 // view_attendance.php - View Attendance Records (Production-Ready: Env Vars ONLY)
 
-$db_host = getenv('DB_HOST') ?: die('DB_HOST missing - Set in Render Environment Variables');
+$db_host = getenv('DB_HOST') ?: die('DB_HOST missing');
 $db_port = (int)(getenv('DB_PORT') ?: 3306);
 $db_name = getenv('DB_NAME') ?: die('DB_NAME missing');
 $db_user = getenv('DB_USER') ?: die('DB_USER missing');
 $db_pass = getenv('DB_PASS') ?: die('DB_PASS missing');
 
+try {
+    $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-if (empty($db_host) || empty($db_name) || empty($db_user) || empty($db_pass)) {
-    die('Database configuration missing. Set DB_HOST, DB_NAME, DB_USER, DB_PASS in server environment variables.');
+    // Create attendance table if not exists
+    $pdo->exec("CREATE TABLE IF NOT EXISTS attendance (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        roll_no INT NOT NULL,
+        subject_code VARCHAR(20) NOT NULL,
+        attendance_date DATE NOT NULL,
+        attendance_time TIME NOT NULL,
+        ts DATETIME NOT NULL,
+        UNIQUE KEY unique_att (subject_code, roll_no, attendance_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+} catch (Exception $e) {
+    die("Database connection failed: " . htmlspecialchars($e->getMessage()));
 }
-
-$pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 $results = [];
 $search_performed = false;
