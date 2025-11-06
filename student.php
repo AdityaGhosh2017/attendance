@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Portal</title>
     <!-- Google Maps API -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA0tqewtVtHePHybBaUzxaBZsJMcaQy2Sg&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA0tqewtVtHePHybBaUzxaBZsJMcaQy2Sg" async defer></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -185,18 +185,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             border-top: 1px solid rgba(255,255,255,0.1);
             z-index: 999;
             text-align: center;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             color: #94a3b8;
+            line-height: 1.4;
         }
-        #locationText {
-            display: block;
-            margin-bottom: 6px;
+        #locationName {
+            font-weight: 600;
+            color: #60a5fa;
+            margin-bottom: 4px;
         }
-        #map {
-            height: 120px;
-            width: 100%;
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.15);
+        #locationCoords {
+            font-size: 0.8rem;
+            color: #cbd5e1;
         }
 
         .modal, #regModal, #successModal {
@@ -283,8 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         @media (max-width: 480px) {
             .container { padding: 24px; }
             h1 { font-size: 1.6rem; }
-            .location-section { padding: 10px; }
-            #map { height: 100px; }
+            .location-section { padding: 10px; font-size: 0.85rem; }
         }
     </style>
 </head>
@@ -304,8 +303,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 <!-- Location Section - Fixed at Bottom -->
 <div class="location-section">
-    <div id="locationText">Fetching location...</div>
-    <div id="map"></div>
+    <div id="locationName">Fetching location...</div>
+    <div id="locationCoords"></div>
 </div>
 
 <!-- Registration Modal -->
@@ -354,53 +353,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 </div>
 
 <script>
-let map, marker;
+let geocoder;
 
 function initMap() {
-    map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: 20.5937, lng: 78.9629 },
-        zoom: 17,
-        disableDefaultUI: true,
-        styles: [
-            { elementType: "geometry", stylers: [{ color: "#1e293b" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#1e293b" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] }
-        ]
-    });
+    geocoder = new google.maps.Geocoder();
 
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const pos = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
 
-                if (marker) marker.setMap(null);
-                marker = new google.maps.Marker({
-                    position: pos,
-                    map: map,
-                    title: "You are here",
-                    icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 8,
-                        fillColor: "#60a5fa",
-                        fillOpacity: 1,
-                        strokeWeight: 3,
-                        strokeColor: "#1e293b"
+                const latlng = new google.maps.LatLng(lat, lng);
+
+                // Reverse geocoding
+                geocoder.geocode({ location: latlng }, (results, status) => {
+                    let locationName = "Unknown Location";
+                    if (status === "OK" && results[0]) {
+                        locationName = results[0].formatted_address;
                     }
-                });
 
-                map.setCenter(pos);
-                document.getElementById('locationText').innerHTML =
-                    `Lat: ${pos.lat.toFixed(5)}, Lng: ${pos.lng.toFixed(5)}`;
+                    document.getElementById('locationName').textContent = locationName;
+                    document.getElementById('locationCoords').textContent = 
+                        `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+                });
             },
             () => {
-                document.getElementById('locationText').innerHTML = 'Location access denied.';
+                document.getElementById('locationName').textContent = 'Location access denied.';
+                document.getElementById('locationCoords').textContent = '';
             }
         );
     } else {
-        document.getElementById('locationText').innerHTML = 'Geolocation not supported.';
+        document.getElementById('locationName').textContent = 'Geolocation not supported.';
+        document.getElementById('locationCoords').textContent = '';
     }
 }
 
