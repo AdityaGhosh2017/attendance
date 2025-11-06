@@ -95,6 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Portal</title>
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA0tqewtVtHePHybBaUzxaBZsJMcaQy2Sg&callback=initMap" async defer></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -119,8 +121,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             font-size: 1.8rem;
             font-weight: 700;
             text-align: center;
-            margin-bottom: 24px;
+            margin-bottom: 8px;
             color: #60a5fa;
+        }
+        #locationDisplay {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+        }
+        #map {
+            height: 200px;
+            width: 100%;
+            margin: 16px 0;
+            border-radius: 16px;
+            border: 2px solid rgba(255,255,255,0.1);
         }
         .digit-grid {
             display: grid;
@@ -150,7 +165,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             margin-top: 8px;
             text-align: center;
         }
-        .modal, #regModal {
+        .modal, #regModal, #successModal {
             display: none;
             position: fixed;
             z-index: 1000;
@@ -170,6 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             width: 90%;
             max-width: 420px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
         }
         .close {
             color: #94a3b8;
@@ -177,6 +193,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            position: absolute;
+            top: 12px;
+            right: 16px;
         }
         .close:hover {
             color: #f87171;
@@ -204,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             outline: none;
             border-color: #60a5fa;
         }
-        button[type="submit"], #saveRollBtn {
+        button[type="submit"], #saveRollBtn, .success-btn {
             background: #3b82f6;
             color: white;
             border: none;
@@ -217,7 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             margin-top: 12px;
             transition: all 0.3s ease;
         }
-        button[type="submit"]:hover, #saveRollBtn:hover {
+        button[type="submit"]:hover, #saveRollBtn:hover, .success-btn:hover {
             background: #2563eb;
         }
         .message {
@@ -226,6 +245,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             border-radius: 12px;
             text-align: center;
             font-weight: 600;
+        }
+        #viewLink {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #60a5fa;
+            text-decoration: none;
+        }
+        #viewLink:hover {
+            text-decoration: underline;
         }
         @media (max-width: 480px) {
             .container { padding: 24px; }
@@ -237,14 +266,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 <div class="container">
     <h1>STUDENT PORTAL</h1>
-    <p style="text-align:center; color:#94a3b8; margin-bottom:20px;">Tap the digit shown in class to mark attendance</p>
+    <div id="locationDisplay">
+        <span id="locationText">Fetching location...</span>
+    </div>
+    <div id="map"></div>
+    <p style="text-align:center; color:#94a3b8; margin: 20px 0 8px;">Tap the digit shown in class to mark attendance</p>
     <div class="digit-grid">
         <?php for ($i = 0; $i <= 9; $i++): ?>
             <div class="digit-btn" data-digit="<?php echo $i; ?>"><?php echo $i; ?></div>
         <?php endfor; ?>
     </div>
     <div class="hint">Submit within 10 seconds of tapping the digit</div>
-    <a href="view_attendance.php" id="viewLink" style="display:block; text-align:center; margin-top:20px; color:#60a5fa;">View My Attendance</a>
+    <a href="view_attendance.php" id="viewLink">View My Attendance</a>
 </div>
 
 <!-- Registration Modal -->
@@ -283,9 +316,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </div>
 </div>
 
+<!-- Success Modal -->
+<div id="successModal" class="modal">
+    <div class="modal-content" style="text-align:center; padding:40px 20px;">
+        <h2 style="color:#34d399; margin-bottom:16px;">Attendance Marked!</h2>
+        <p style="color:#94a3b8; font-size:1.1rem;" id="successMsgText">Attendance recorded successfully.</p>
+        <button class="success-btn" onclick="document.getElementById('successModal').style.display='none'">OK</button>
+    </div>
+</div>
+
 <script>
+let map, marker;
+
+function initMap() {
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 20.5937, lng: 78.9629 },
+        zoom: 15,
+        disableDefaultUI: false,
+        styles: [
+            { elementType: "geometry", stylers: [{ color: "#1e293b" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#1e293b" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] }
+        ]
+    });
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const pos = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+
+                if (marker) marker.setMap(null);
+                marker = new google.maps.Marker({
+                    position: pos,
+                    map: map,
+                    title: "You are here"
+                });
+
+                map.setCenter(pos);
+                document.getElementById('locationText').innerHTML =
+                    `Lat: ${pos.lat.toFixed(4)}, Lng: ${pos.lng.toFixed(4)}`;
+            },
+            () => {
+                document.getElementById('locationText').innerHTML = 'Location access denied.';
+            }
+        );
+    } else {
+        document.getElementById('locationText').innerHTML = 'Geolocation not supported.';
+    }
+}
+
 const regModal = document.getElementById('regModal');
 const attendanceModal = document.getElementById('attendanceModal');
+const successModal = document.getElementById('successModal');
 const closeBtn = document.querySelector('.close');
 const form = document.getElementById('attendanceForm');
 let selectedDigit = null;
@@ -304,7 +389,7 @@ document.getElementById('saveRollBtn').onclick = () => {
 
     if (!roll || roll < 1 || roll > 100) {
         msg.style.color = '#f87171';
-        msg.textContent = 'Enter valid roll (1-10)';
+        msg.textContent = 'Enter valid roll (1-100)';
         msg.style.display = 'block';
         return;
     }
@@ -337,6 +422,12 @@ window.onclick = (e) => {
         attendanceModal.style.display = 'none';
         document.getElementById('modalMessage').style.display = 'none';
     }
+    if (e.target === successModal) {
+        successModal.style.display = 'none';
+    }
+    if (e.target === regModal) {
+        // Optional: prevent closing reg modal by clicking outside
+    }
 };
 
 form.onsubmit = async (e) => {
@@ -354,11 +445,11 @@ form.onsubmit = async (e) => {
         const data = await resp.json();
 
         if (data.success) {
-            msgDiv.style.color = '#34d399';
-            msgDiv.textContent = data.message || 'Attendance marked!';
+            attendanceModal.style.display = 'none';
+            document.getElementById('successMsgText').textContent = data.message || 'Attendance marked!';
+            successModal.style.display = 'flex';
             setTimeout(() => {
-                attendanceModal.style.display = 'none';
-                msgDiv.style.display = 'none';
+                successModal.style.display = 'none';
             }, 3000);
         } else {
             msgDiv.style.color = '#f87171';
