@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     .room { font-size: 40px; margin-top: 8px; }
 
     .container {
-      width: 90%; max-width: 1100px; padding: 30px;
+      width: 95%; max-width: 1300px; padding: 30px;
       background: #1a1a1a; border-radius: 15px;
       box-shadow: 0 0 30px rgba(0,255,255,0.4);
       border: 1px solid #0ff;
@@ -112,27 +112,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     .roll-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       grid-template-rows: repeat(2, 1fr);
-      gap: 25px;
+      gap: 20px;
       margin-top: 40px;
     }
     .roll-item {
       text-align: center;
-      padding: 30px;
+      padding: 25px;
       background: rgba(0, 255, 255, 0.1);
       border: 3px solid #0ff;
       border-radius: 20px;
       box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
     }
     .roll-number {
-      font-size: 70px;
+      font-size: 60px;
       font-weight: bold;
       color: #fff;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
     .roll-digit {
-      font-size: 140px;
+      font-size: 110px;
       font-weight: bold;
       color: #0ff;
       text-shadow: 0 0 20px #0ff;
@@ -165,15 +165,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     #status { font-size: 24px; margin: 20px; text-align: center; }
     .success { color: #0f0; } .error { color: #f00; }
 
-    @media (max-width: 768px) {
-      .roll-grid { 
-        grid-template-columns: repeat(2, 1fr); 
-        grid-template-rows: repeat(3, 1fr); 
-        gap: 20px; 
+    @media (max-width: 992px) {
+      .roll-grid {
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        gap: 15px;
       }
       .roll-number { font-size: 50px; }
-      .roll-digit { font-size: 90px; }
-      .container { width: 95%; padding: 20px; }
+      .roll-digit { font-size: 85px; }
+      .container { width: 98%; padding: 20px; }
+    }
+
+    @media (max-width: 768px) {
+      .roll-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(5, 1fr);
+        gap: 12px;
+      }
+      .roll-number { font-size: 40px; }
+      .roll-digit { font-size: 70px; }
     }
   </style>
 </head>
@@ -197,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
   <div class="container hidden" id="rollContainer">
     <div class="roll-grid" id="rollGrid">
-      <!-- 6 roll items will be injected here -->
+      <!-- 10 roll items will be injected here -->
     </div>
   </div>
 
@@ -230,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       document.getElementById("infoBox").classList.remove("hidden");
       document.getElementById("rollContainer").classList.remove("hidden");
 
-      // Initialize 6 grid cells
+      // Initialize 10 grid cells
       const grid = document.getElementById("rollGrid");
       grid.innerHTML = '';
       for (let i = 0; i < batchSize; i++) {
@@ -288,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         batch.push({ roll_no, digit });
       }
 
-      // Update all 6 cells at once (no animation)
+      // Update all 10 cells at once (no animation)
       batch.forEach((item, idx) => {
         const el = document.getElementById(`roll-${idx}`);
         el.querySelector('.roll-number').innerText = item.roll_no;
