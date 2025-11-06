@@ -208,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
   <script>
     let currentRoll = 1;
     const total = 100;
-    const batchSize = 6;
+    const batchSize = 10;
     let subjectCode = "", roomNo = "";
 
     function showStatus(msg, isError = false) {
