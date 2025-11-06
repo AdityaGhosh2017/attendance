@@ -96,7 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Portal</title>
     <!-- Google Maps API (Geocoding only) -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA0tqewtVtHePHybBaUzxaBZsJMcaQy2Sg" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyARq2NUxKwB6mxjpEbqLePWYiiCpTc3fwc" async defer></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body {
@@ -414,18 +414,19 @@ function initMap() {
     }
 }
 
-// Call initMap when script loads
-if (typeof google !== 'undefined' && google.maps) {
-    initMap();
-} else {
-    // If Google script failed to load
-    setTimeout(() => {
-        if (document.getElementById('locationName').textContent === 'Fetching location...') {
-            document.getElementById('locationName').textContent = 'Google Maps failed to load';
-            document.getElementById('locationCoords').textContent = 'Check internet or API key';
-        }
-    }, 8000);
-}
+// Call initMap when Google Maps script loads
+window.onload = function() {
+    if (typeof google !== 'undefined' && google.maps) {
+        initMap();
+    } else {
+        setTimeout(() => {
+            if (document.getElementById('locationName').textContent === 'Fetching location...') {
+                document.getElementById('locationName').textContent = 'Google Maps failed to load';
+                document.getElementById('locationCoords').textContent = 'Check internet or API key';
+            }
+        }, 8000);
+    }
+};
 
 // Modal & Form Logic
 const regModal = document.getElementById('regModal');
