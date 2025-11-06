@@ -112,32 +112,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
     .roll-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-      margin-top: 30px;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 25px;
+      margin-top: 40px;
     }
     .roll-item {
       text-align: center;
-      padding: 20px;
+      padding: 30px;
       background: rgba(0, 255, 255, 0.1);
       border: 3px solid #0ff;
       border-radius: 20px;
       box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-      transition: all 0.3s ease;
-    }
-    .roll-item.active {
-      background: rgba(0, 255, 255, 0.2);
-      transform: scale(1.05);
-      box-shadow: 0 0 40px rgba(0, 255, 255, 0.6);
     }
     .roll-number {
-      font-size: 60px;
+      font-size: 70px;
       font-weight: bold;
       color: #fff;
-      margin-bottom: 10px;
+      margin-bottom: 15px;
     }
     .roll-digit {
-      font-size: 120px;
+      font-size: 140px;
       font-weight: bold;
       color: #0ff;
       text-shadow: 0 0 20px #0ff;
@@ -163,18 +158,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       background: #0ff; color: #111; border: none;
       padding: 14px 40px; font-size: 22px; font-weight: bold;
       border-radius: 10px; cursor: pointer; margin-top: 20px;
-      box-shadow: 0 0 15px #0ff; transition: 0.3s;
+      box-shadow: 0 0 15px #0ff;
     }
-    button:hover { background: #0cc; transform: scale(1.05); }
 
     .hidden { display: none !important; }
     #status { font-size: 24px; margin: 20px; text-align: center; }
     .success { color: #0f0; } .error { color: #f00; }
 
     @media (max-width: 768px) {
-      .roll-grid { grid-template-columns: repeat(2, 1fr); gap: 15px; }
-      .roll-number { font-size: 40px; }
-      .roll-digit { font-size: 80px; }
+      .roll-grid { 
+        grid-template-columns: repeat(2, 1fr); 
+        grid-template-rows: repeat(3, 1fr); 
+        gap: 20px; 
+      }
+      .roll-number { font-size: 50px; }
+      .roll-digit { font-size: 90px; }
       .container { width: 95%; padding: 20px; }
     }
   </style>
@@ -199,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
   <div class="container hidden" id="rollContainer">
     <div class="roll-grid" id="rollGrid">
-      <!-- 4 roll items will be injected here -->
+      <!-- 6 roll items will be injected here -->
     </div>
   </div>
 
@@ -210,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
   <script>
     let currentRoll = 1;
     const total = 100;
-    const batchSize = 4;
+    const batchSize = 6;
     let subjectCode = "", roomNo = "";
 
     function showStatus(msg, isError = false) {
@@ -232,7 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       document.getElementById("infoBox").classList.remove("hidden");
       document.getElementById("rollContainer").classList.remove("hidden");
 
-      // Initialize grid
+      // Initialize 6 grid cells
       const grid = document.getElementById("rollGrid");
       grid.innerHTML = '';
       for (let i = 0; i < batchSize; i++) {
@@ -244,7 +242,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         `;
       }
 
-      startBatch();
+      showNextBatch();
     }
 
     async function saveDigit(roll_no, digit) {
@@ -276,7 +274,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
       } catch (err) {}
     }
 
-    function startBatch() {
+    function showNextBatch() {
       if (currentRoll > total) {
         showStatus("Roll complete! Temp data will clear in 30 seconds.");
         setTimeout(completeRoll, 30000);
@@ -290,24 +288,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         batch.push({ roll_no, digit });
       }
 
-      // Update UI
+      // Update all 6 cells at once (no animation)
       batch.forEach((item, idx) => {
-        setTimeout(() => {
-          const el = document.getElementById(`roll-${idx}`);
-          el.querySelector('.roll-number').innerText = item.roll_no;
-          el.querySelector('.roll-digit').innerText = item.digit;
-          el.classList.add('active');
-          saveDigit(item.roll_no, item.digit);
-        }, idx * 200);
+        const el = document.getElementById(`roll-${idx}`);
+        el.querySelector('.roll-number').innerText = item.roll_no;
+        el.querySelector('.roll-digit').innerText = item.digit;
+        saveDigit(item.roll_no, item.digit);
       });
 
-      // Clear active state after display
-      setTimeout(() => {
-        document.querySelectorAll('.roll-item').forEach(el => el.classList.remove('active'));
-      }, batch.length * 200 + 800);
+      // Clear unused cells
+      for (let i = batch.length; i < batchSize; i++) {
+        const el = document.getElementById(`roll-${i}`);
+        el.querySelector('.roll-number').innerText = '–';
+        el.querySelector('.roll-digit').innerText = '–';
+      }
 
-      // Next batch
-      setTimeout(startBatch, 1500);
+      // Wait 5 seconds, then next batch
+      setTimeout(showNextBatch, 5000);
     }
   </script>
 </body>
