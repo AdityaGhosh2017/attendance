@@ -11,25 +11,27 @@ try {
     $pdo = new PDO("mysql:host=$db_host;port=$db_port;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+    // Fixed: subject_code and room_no are VARCHAR(50) to support longer codes/rooms
     $pdo->exec("CREATE TABLE IF NOT EXISTS temp_attendance (
-    id INT NOT NULL AUTO_INCREMENT,
-    subject_code VARCHAR(20) NOT NULL,
-    room_no VARCHAR(20) NOT NULL,
-    roll_no INT NOT NULL,
-    digit INT NOT NULL,
-    ts DATETIME NOT NULL,
-    PRIMARY KEY (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
+        id INT NOT NULL AUTO_INCREMENT,
+        subject_code VARCHAR(50) NOT NULL,
+        room_no VARCHAR(50) NOT NULL,
+        roll_no INT NOT NULL,
+        digit INT NOT NULL,
+        ts DATETIME NOT NULL,
+        PRIMARY KEY (id)
+    ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 
     $pdo->exec("CREATE TABLE IF NOT EXISTS attendance (
-    id INT NOT NULL AUTO_INCREMENT,
-    roll_no INT NOT NULL,
-    subject_code VARCHAR(20) NOT NULL,
-    attendance_date DATE NOT NULL,
-    attendance_time TIME NOT NULL,
-    ts DATETIME NOT NULL,
-    PRIMARY KEY (id)
-) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
+        id INT NOT NULL AUTO_INCREMENT,
+        roll_no INT NOT NULL,
+        subject_code VARCHAR(50) NOT NULL,
+        room_no VARCHAR(50) NOT NULL,
+        attendance_date DATE NOT NULL,
+        attendance_time TIME NOT NULL,
+        ts DATETIME NOT NULL,
+        PRIMARY KEY (id)
+    ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;");
 } catch (Exception $e) {
     die("Database setup error: " . htmlspecialchars($e->getMessage()));
 }
@@ -62,10 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         if ($row && $row['digit'] == $digit) {
             $insert = $pdo->prepare("
-                INSERT INTO attendance (roll_no, subject_code, attendance_date, attendance_time, ts)
-                VALUES (?, ?, DATE(?), TIME(?), ?)
+                INSERT INTO attendance (roll_no, subject_code, room_no, attendance_date, attendance_time, ts)
+                VALUES (?, ?, ?, DATE(?), TIME(?), ?)
             ");
-            $insert->execute([$roll_no, $subject, $now, $now, $now]);
+            $insert->execute([$roll_no, $subject, $room, $now, $now, $now]);
 
             $last_id = $pdo->lastInsertId();
 
@@ -312,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <div class="reg-content">
         <h2 style="text-align:center; color:#60a5fa; margin-bottom:20px;">One-Time Registration</h2>
         <div class="form-group">
-            <label>Your Roll Number (1-100)</label>
+            <label>Your Roll Number (1-10)</label>
             <input type="number" id="regRoll" min="1" max="100" placeholder="e.g., 45" required>
         </div>
         <button id="saveRollBtn">Save & Continue</button>
@@ -359,7 +361,6 @@ let geocoder;
 function initMap() {
     geocoder = new google.maps.Geocoder();
 
-    // Fallback: Show default message after 15s if no response
     const fallbackTimeout = setTimeout(() => {
         if (document.getElementById('locationName').textContent === 'Fetching location...') {
             document.getElementById('locationName').textContent = 'Location unavailable';
@@ -381,7 +382,6 @@ function initMap() {
                 const lng = position.coords.longitude;
                 const latlng = new google.maps.LatLng(lat, lng);
 
-                // Reverse geocoding
                 geocoder.geocode({ location: latlng }, (results, status) => {
                     let locationName = "Unknown Location";
                     if (status === "OK" && results[0]) {
@@ -414,9 +414,9 @@ function initMap() {
     }
 }
 
-// Call initMap when Google Maps script loads
+// Initialize on load
 window.onload = function() {
-    if (typeof google !== 'undefined' && google.maps) {
+    if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
         initMap();
     } else {
         setTimeout(() => {
